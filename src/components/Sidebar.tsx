@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Navbar, Center, Tooltip, UnstyledButton, createStyles, Stack, rem } from "@mantine/core";
 import { MdCloud } from "react-icons/md";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const useStyles = createStyles(theme => ({
   link: {
@@ -63,10 +65,21 @@ const mockdata = [
 
 export default function Sidebar() {
   const [active, setActive] = useState(2);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const links = mockdata.map((link, index) => (
     <NavbarLink {...link} key={link.label} active={index === active} onClick={() => setActive(index)} />
   ));
+
+  async function handleLogout() {
+    try {
+      await logout();
+      navigate("/signin");
+    } catch (err) {
+      console.log(err);
+    }
+  }
 
   return (
     <Navbar
@@ -88,7 +101,7 @@ export default function Sidebar() {
       <Navbar.Section>
         <Stack justify="center" spacing={0}>
           <NavbarLink icon={MdCloud} label="Change account" />
-          <NavbarLink icon={MdCloud} label="Logout" />
+          <NavbarLink icon={MdCloud} label="Logout" onClick={handleLogout} />
         </Stack>
       </Navbar.Section>
     </Navbar>

@@ -1,21 +1,26 @@
 import { useFormik } from "formik";
 import { signInSchema } from "../schemas";
-import { MdWarning } from "react-icons/md";
-import { simulateLoading } from "../dev/helpers";
+import { useAuth } from "../contexts/AuthContext";
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 import { Paper, createStyles, TextInput, PasswordInput, Button, Title, rem } from "@mantine/core";
+import { FirebaseError } from "firebase/app";
+import { Link } from "react-router-dom";
+import { MdArrowBack } from "react-icons/md";
 
 const useStyles = createStyles(theme => ({
   wrapper: {
     minHeight: "100%",
-    backgroundSize: "cover",
-    backgroundImage:
-      "url(https://images.unsplash.com/photo-1484242857719-4b9144542727?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1280&q=80)",
+    // backgroundSize: "30%",
+    // backgroundRepeat: "no-repeat",
+    // backgroundPosition: "70% 50%",
+    // backgroundImage:
+    //   "url(https://cdni.iconscout.com/illustration/premium/thumb/app-gamification-encouraging-customers-to-earn-rewards-audience-engaging-content-8114377-6529269.png?f=webp)",
   },
 
   form: {
     display: "flex",
     flexDirection: "column",
-    justifyContent: "center",
     gap: "2rem",
     borderRight: `${rem(1)} solid ${theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[3]}`,
     minHeight: "100%",
@@ -45,12 +50,18 @@ interface IValues {
   password: string;
 }
 
-export default function Signup() {
+export default function Signin() {
   const { classes } = useStyles();
+  const { signin } = useAuth();
+  const navigate = useNavigate();
 
   const onSubmit = async (values: IValues) => {
-    await simulateLoading(100, 1000);
-    console.log(values);
+    try {
+      await signin(values.email, values.password);
+      navigate("/");
+    } catch (err: FirebaseError | any) {
+      if (["auth/wrong-password", "auth/user-not-found"].includes(err?.code)) toast.error("Invalid credentials");
+    }
   };
 
   const { values, errors, touched, isSubmitting, handleBlur, handleChange, handleSubmit } = useFormik({
@@ -65,8 +76,12 @@ export default function Signup() {
   return (
     <div className={classes.wrapper}>
       <Paper className={classes.form} radius={0} p={40}>
+        <Title color="#228be6" order={2}>
+          <Link to="/">Pritel</Link>
+        </Title>
+
         <Title order={2} className={classes.title} ta="center" mt="md">
-          Welcome back to Pritel!
+          Sign in
         </Title>
 
         <form onSubmit={handleSubmit} autoComplete="off">
@@ -92,8 +107,15 @@ export default function Signup() {
             size="md"
           />
 
-          <Button fullWidth mt="xl" size="md" type="submit" loading={isSubmitting}>
-            Login
+          <Button
+            disabled={values.email.length === 0 || values.password.length === 0}
+            fullWidth
+            mt="xl"
+            size="md"
+            type="submit"
+            loading={isSubmitting}
+          >
+            Sign in
           </Button>
         </form>
       </Paper>
