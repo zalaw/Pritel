@@ -24,6 +24,18 @@ a {
   flex: 1 1 auto;
 }
 
+.main-container {
+  flex: 1 1 auto;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.Toastify__toast--success {
+  background-color: rgb(9, 146, 104) !important;
+  color: white !important;
+}
+
 .Toastify__toast--error {
   background-color: rgb(255, 85, 113) !important;
   color: white !important;
@@ -31,4 +43,8 @@ a {
 
 .Toastify__toast-icon svg {
   fill: white !important;
+}
+
+.mantine-Drawer-close svg {
+  size: 280px;
 }

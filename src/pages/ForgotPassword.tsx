@@ -1,12 +1,11 @@
 import { FormikHelpers, useFormik } from "formik";
-import { signInSchema } from "../schemas";
+import { forgotPasswordSchema } from "../schemas";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
-import { Paper, createStyles, TextInput, PasswordInput, Button, Title, Text, rem } from "@mantine/core";
+import { Paper, createStyles, TextInput, Button, Title, Text, rem } from "@mantine/core";
 import { FirebaseError } from "firebase/app";
 import { Link } from "react-router-dom";
-import { MdArrowBack } from "react-icons/md";
 
 const useStyles = createStyles(theme => ({
   wrapper: {
@@ -47,37 +46,43 @@ const useStyles = createStyles(theme => ({
 
 interface FormValues {
   email: string;
-  password: string;
 }
 
 const initialValues: FormValues = {
   email: "",
-  password: "",
 };
 
-export default function Signin() {
+export default function ForgotPassword() {
   const { classes } = useStyles();
-  const { signin, logout } = useAuth();
-  const navigate = useNavigate();
+  const { forgotPassword } = useAuth();
 
   const onSubmit = async (values: FormValues, { resetForm }: FormikHelpers<FormValues>) => {
     try {
-      const userCredential = await signin(values.email, values.password);
+      // const userCredential = await signin(values.email, values.password);
 
-      if (!userCredential.user.emailVerified) {
-        await logout();
-        toast.error("This email is not verified! Check your inbox (or spam) for further information");
-      } else {
-        toast.success("Successfully signed in!");
-        navigate("/");
-      }
+      // if (!userCredential.user.emailVerified) {
+      //   await logout();
+      //   toast.error("This email is not verified! Check your inbox (or spam) for further information");
+      // } else {
+      //   toast.success("Successfully signed in!");
+      //   navigate("/");
+      // }
+
+      await forgotPassword(values.email);
+
+      toast.success(
+        "Email sent successfully! If there's a match, you should receive further instructions in the inbox (or spam)"
+      );
 
       resetForm();
     } catch (err: FirebaseError | any) {
-      if (["auth/wrong-password", "auth/user-not-found"].includes(err?.code)) toast.error("Invalid credentials");
-      else if (err.code === "auth/user-disabled") toast.error("This account is disabled 😳");
-      else toast.error("Unknown error. Try again later");
-      values.password = "";
+      if (["auth/user-not-found"].includes(err.code)) {
+        toast.success(
+          "Email sent successfully! If there's a match, you should receive further instructions in the inbox (or spam)"
+        );
+
+        resetForm();
+      } else toast.error("Unknown error. Try again later");
     } finally {
       // resetForm();
     }
@@ -85,15 +90,19 @@ export default function Signin() {
 
   const { values, errors, touched, isSubmitting, handleBlur, handleChange, handleSubmit } = useFormik({
     initialValues,
-    validationSchema: signInSchema,
+    validationSchema: forgotPasswordSchema,
     onSubmit,
   });
 
   return (
     <div className={classes.wrapper}>
       <Paper className={classes.form} radius={0} p={40}>
+        <Title color="#228be6" order={2}>
+          <Link to="/">Pritel</Link>
+        </Title>
+
         <Title order={2} className={classes.title} ta="center" mt="md">
-          Sign in
+          Forgot password?
         </Title>
 
         <form onSubmit={handleSubmit} autoComplete="off">
@@ -107,35 +116,17 @@ export default function Signin() {
             placeholder="hello@gmail.com"
             size="md"
           />
-          <PasswordInput
-            id="password"
-            error={touched.password && errors.password}
-            value={values.password}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            label="Password"
-            placeholder="Your password"
-            mt="md"
-            size="md"
-          />
 
-          <Button
-            disabled={values.email.length === 0 || values.password.length === 0}
-            fullWidth
-            mt="xl"
-            size="md"
-            type="submit"
-            loading={isSubmitting}
-          >
-            Sign in
+          <Button disabled={values.email.length === 0} fullWidth mt="xl" size="md" type="submit" loading={isSubmitting}>
+            Sent reset link
           </Button>
         </form>
 
         <Text ta="center" mt="sm">
-          Forgot password?{" "}
-          <Link to="/forgotpassword" color="##228be6">
+          Back to{" "}
+          <Link to="/signin" color="##228be6">
             <Text span color="#228be6">
-              <b>Reset</b>
+              <b>Sign in</b>
             </Text>
           </Link>
         </Text>

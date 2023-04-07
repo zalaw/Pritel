@@ -4,14 +4,17 @@ import App from "./components/App";
 import "./styles/main.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { BrowserRouter } from "react-router-dom";
+import { MantineProvider } from "@mantine/core";
 
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
+  // <React.StrictMode>
+  <BrowserRouter>
+    <AuthProvider>
+      <MantineProvider theme={{ colorScheme: "dark" }} withGlobalStyles withNormalizeCSS>
         <App />
-      </AuthProvider>
-    </BrowserRouter>
-  </React.StrictMode>
+      </MantineProvider>
+    </AuthProvider>
+  </BrowserRouter>
+  // </React.StrictMode>
 );

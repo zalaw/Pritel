@@ -66,8 +66,10 @@ const useStyles = createStyles(theme => ({
     marginTop: theme.spacing.lg,
     display: "flex",
     justifyContent: "center",
+    gap: "2rem",
 
     [theme.fn.smallerThan("xs")]: {
+      width: "100%",
       flexDirection: "column",
     },
   },
@@ -79,6 +81,7 @@ const useStyles = createStyles(theme => ({
 
     [theme.fn.smallerThan("xs")]: {
       height: rem(42),
+      width: "100%",
       fontSize: theme.fontSizes.md,
 
       "&:not(:first-of-type)": {
@@ -115,6 +118,11 @@ export function Home() {
           </Container>
 
           <div className={classes.controls}>
+            <Link to="/enroll">
+              <Button className={classes.control} size="md" variant="default" color="gray">
+                Enroll
+              </Button>
+            </Link>
             <Link to="/signin">
               <Button className={classes.control} size="md">
                 Sign in

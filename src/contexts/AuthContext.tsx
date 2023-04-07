@@ -1,7 +1,16 @@
-import React, { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { auth } from "../firebase";
-import { User, UserCredential, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import {
+  User,
+  UserCredential,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+} from "firebase/auth";
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -9,13 +18,31 @@ interface AuthProviderProps {
 
 interface IValue {
   currentUser: User | null;
+  userLoading: boolean;
+  enroll: (email: string, password: string) => Promise<UserCredential>;
   signin: (email: string, password: string) => Promise<UserCredential>;
+  updateDisplayName: (name: string) => Promise<void>;
+  sendVerificationEmail: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<IValue>({
   currentUser: null,
+  userLoading: true,
+  enroll: () => {
+    throw new Error("AuthContext not initialized properly");
+  },
   signin: () => {
+    throw new Error("AuthContext not initialized properly");
+  },
+  updateDisplayName: () => {
+    throw new Error("AuthContext not initialized properly");
+  },
+  sendVerificationEmail: () => {
+    throw new Error("AuthContext not initialized properly");
+  },
+  forgotPassword: () => {
     throw new Error("AuthContext not initialized properly");
   },
   logout: () => {
@@ -28,26 +55,45 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const navigate = useNavigate();
-
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [userLoading, setUserLoading] = useState(true);
+
+  function enroll(email: string, password: string): Promise<UserCredential> {
+    return createUserWithEmailAndPassword(auth, email, password);
+  }
 
   function signin(email: string, password: string): Promise<UserCredential> {
     return signInWithEmailAndPassword(auth, email, password);
   }
 
-  function logout() {
+  function updateDisplayName(name: string): Promise<void> {
+    return updateProfile(auth.currentUser!, { displayName: name });
+  }
+
+  function sendVerificationEmail(): Promise<void> {
+    return sendEmailVerification(auth.currentUser!);
+  }
+
+  function forgotPassword(email: string): Promise<void> {
+    return sendPasswordResetEmail(auth, email);
+  }
+
+  function logout(): Promise<void> {
     return signOut(auth);
   }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, user => {
+      console.log("onAuthStateChanged");
+      console.log(user);
+
       if (user) {
         setCurrentUser(user);
+      } else {
+        setCurrentUser(null);
       }
 
-      setLoading(false);
+      setUserLoading(false);
     });
 
     return unsubscribe;
@@ -55,9 +101,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value: IValue = {
     currentUser,
+    userLoading,
+    enroll,
     signin,
+    updateDisplayName,
+    sendVerificationEmail,
+    forgotPassword,
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{loading ? "Loading..." : children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
