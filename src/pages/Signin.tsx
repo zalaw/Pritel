@@ -2,7 +2,7 @@ import { FormikHelpers, useFormik } from "formik";
 import { signInSchema } from "../schemas";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Paper, createStyles, TextInput, PasswordInput, Button, Title, Text, rem } from "@mantine/core";
 import { FirebaseError } from "firebase/app";
 import { Link } from "react-router-dom";
@@ -10,7 +10,7 @@ import { MdArrowBack } from "react-icons/md";
 
 const useStyles = createStyles(theme => ({
   wrapper: {
-    minHeight: "100%",
+    height: "100%",
     // backgroundSize: "30%",
     // backgroundRepeat: "no-repeat",
     // backgroundPosition: "70% 50%",
@@ -23,7 +23,7 @@ const useStyles = createStyles(theme => ({
     flexDirection: "column",
     gap: "2rem",
     borderRight: `${rem(1)} solid ${theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[3]}`,
-    minHeight: "100%",
+    height: "100%",
     maxWidth: rem(400),
 
     [theme.fn.smallerThan("xs")]: {
@@ -59,18 +59,20 @@ export default function Signin() {
   const { classes } = useStyles();
   const { signin, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/dashboard";
 
   const onSubmit = async (values: FormValues, { resetForm }: FormikHelpers<FormValues>) => {
     try {
       const userCredential = await signin(values.email, values.password);
 
-      if (!userCredential.user.emailVerified) {
-        await logout();
-        toast.error("This email is not verified! Check your inbox (or spam) for further information");
-      } else {
-        toast.success("Successfully signed in!");
-        navigate("/");
-      }
+      // if (!userCredential.user.emailVerified) {
+      // await logout();
+      // toast.error("This email is not verified! Check your inbox (or spam) for further information");
+      // } else {
+      toast.success("Successfully signed in!");
+      navigate(from, { replace: true });
+      // }
 
       resetForm();
     } catch (err: FirebaseError | any) {

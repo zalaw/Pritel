@@ -20,10 +20,13 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
-console.log(process.env.NODE_ENV);
+const app = initializeApp(process.env.NODE_ENV === "development" ? firebaseConfigDev : firebaseConfig, "main");
+const authApp = initializeApp(process.env.NODE_ENV === "development" ? firebaseConfigDev : firebaseConfig, "AuthApp");
 
-const app = initializeApp(process.env.NODE_ENV === "development" ? firebaseConfigDev : firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const secondaryAuth = getAuth(authApp);
 
-export { auth, db };
+const db = getFirestore(app);
+const secondaryDB = getFirestore(authApp);
+
+export { auth, secondaryAuth, db, secondaryDB };

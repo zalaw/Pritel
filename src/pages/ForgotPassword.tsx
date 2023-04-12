@@ -97,10 +97,6 @@ export default function ForgotPassword() {
   return (
     <div className={classes.wrapper}>
       <Paper className={classes.form} radius={0} p={40}>
-        <Title color="#228be6" order={2}>
-          <Link to="/">Pritel</Link>
-        </Title>
-
         <Title order={2} className={classes.title} ta="center" mt="md">
           Forgot password?
         </Title>

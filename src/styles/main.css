@@ -10,6 +10,8 @@ html {
 
 body {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 a {
@@ -18,7 +20,6 @@ a {
 }
 
 #root {
-  height: 100%;
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -29,6 +30,11 @@ a {
 
   display: flex;
   flex-direction: column;
+}
+
+#custom-disabled:disabled {
+  background-color: rgb(85, 85, 85) !important;
+  color: white !important;
 }
 
 .Toastify__toast--success {
@@ -47,4 +53,17 @@ a {
 
 .mantine-Drawer-close svg {
   size: 280px;
+}
+
+.badges-row {
+  width: 100%;
+  padding-block: 40px;
+  display: flex;
+  gap: 2rem;
+  overflow-x: hidden;
+  white-space: nowrap;
+}
+
+.badges-row:hover {
+  overflow-x: auto;
 }

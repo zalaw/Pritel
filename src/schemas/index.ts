@@ -42,3 +42,30 @@ export const signInSchema = yup.object().shape({
 export const forgotPasswordSchema = yup.object().shape({
   email: yup.string().email("Email should be valid").required("This field is required"),
 });
+
+export const createTaskSchema = yup.object().shape({
+  title: yup
+    .string()
+    .min(10, "Title should be at 10-50 characters")
+    .max(50, "Title should be at 10-50 characters")
+    .required("This field is required"),
+  description: yup
+    .string()
+    .min(10, "Description should be at 10-500 characters")
+    .max(500, "Description should be at 10-500 characters")
+    .required("This field is required"),
+  deadline: yup.date().required("This field is required"),
+  reward: yup.number().min(1).required("This field is required"),
+});
+
+export const createRewardSchema = yup.object().shape({
+  title: yup
+    .string()
+    .min(10, "Title should be at 10-50 characters")
+    .max(50, "Title should be at 10-50 characters")
+    .required("This field is required"),
+  description: yup
+    .string()
+    .min(10, "Description should be at 10-500 characters")
+    .max(500, "Description should be at 10-500 characters"),
+});

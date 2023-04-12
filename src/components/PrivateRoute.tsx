@@ -1,9 +1,19 @@
-import { ReactNode } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { Outlet, Navigate } from "react-router-dom";
+import { useLocation, Outlet, Navigate } from "react-router-dom";
 
-export default function PrivateRoute() {
-  const { currentUser } = useAuth();
+interface PrivateRouteProps {
+  adminOnly?: boolean;
+}
 
-  return currentUser ? <Outlet /> : <Navigate to="/signin" />;
+export default function PrivateRoute({ adminOnly = false }: PrivateRouteProps) {
+  const { currentUser, userLoading } = useAuth();
+  const location = useLocation();
+
+  if (userLoading) return null;
+
+  if (!currentUser) return <Navigate to="/signin" state={{ from: location }} replace />;
+
+  if (adminOnly && !currentUser.user.admin) return <Navigate to="/unauthorized" state={{ from: location }} replace />;
+
+  return <Outlet />;
 }

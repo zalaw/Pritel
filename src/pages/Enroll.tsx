@@ -23,12 +23,12 @@ import { Link } from "react-router-dom";
 import { MdArrowBack } from "react-icons/md";
 import ToS from "../components/ToS";
 import { useDisclosure } from "@mantine/hooks";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { addDoc, collection, doc, setDoc } from "firebase/firestore";
+import { db, secondaryAuth, secondaryDB } from "../firebase";
 
 const useStyles = createStyles(theme => ({
   wrapper: {
-    minHeight: "100%",
+    height: "100%",
     // backgroundSize: "30%",
     // backgroundRepeat: "no-repeat",
     // backgroundPosition: "70% 50%",
@@ -96,21 +96,44 @@ export default function Enroll() {
 
   const onSubmit = async (values: FormValues, { resetForm }: FormikHelpers<FormValues>) => {
     try {
-      const { user } = await enroll(values.email, values.password);
+      const { user } = await enroll(values.email, values.password, secondaryAuth);
 
-      await updateDisplayName(values.username);
-      await setDoc(doc(db, "users", user.uid), {
-        displayName: values.username,
-        company: values.company,
-        photoURL: null,
-        photoName: null,
-        admin: true,
+      console.log(user);
+
+      await updateDisplayName(values.username, secondaryAuth);
+
+      console.log("done here");
+
+      const company = await addDoc(collection(secondaryDB, "companies"), {
+        admin: doc(db, `users/${user.uid}`),
+        adminId: user.uid,
+        claimPoints: null,
+        claimPointsInterval: null,
+        name: values.company,
+        totalEmployees: 1,
+        rewards: [],
       });
-      await sendVerificationEmail();
-      await logout();
+
+      await setDoc(doc(secondaryDB, "users", user.uid), {
+        admin: true,
+        company: doc(db, `companies/${company.id}`),
+        companyId: company.id,
+        displayName: values.username,
+        lastClaim: null,
+        photoName: null,
+        photoURL: null,
+        points: 0,
+        email: user.email,
+        pointsCollected: 0,
+        pointsSpent: 0,
+      });
+
+      // await sendVerificationEmail(secondaryAuth);
+      await logout(secondaryAuth);
 
       toast.success("Account created successfully! Verify your email before signin in");
     } catch (err: FirebaseError | any) {
+      console.log(err);
       if (err.code === "auth/email-already-in-use") toast.error("Email already in use");
       else toast.error("Unknown error. Try again later");
     } finally {
