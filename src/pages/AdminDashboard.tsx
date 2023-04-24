@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import {
-  FieldValue,
-  arrayRemove,
   arrayUnion,
   collection,
-  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -14,216 +11,90 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { DropZone } from "../components/DropZone";
+import { UploadEmailsDropZone } from "../components/UploadEmailsDropZone";
 import {
   Card,
   NumberInput,
   Grid,
-  createStyles,
   Select,
-  Group,
   Button,
   Paper,
-  Box,
   SimpleGrid,
   Stack,
   Flex,
   Title,
   Modal,
-  TextInput,
-  Textarea,
   Text,
-  ActionIcon,
   Avatar,
 } from "@mantine/core";
 import { db } from "../firebase";
-import { useAuth, CurrentUser } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-toastify";
 import { useDisclosure } from "@mantine/hooks";
-import { useFormik, FormikHelpers } from "formik";
-import { createRewardSchema } from "../schemas";
-import { MdEditNote, MdDeleteForever } from "react-icons/md";
-
-const useStyles = createStyles(theme => ({
-  grid: {
-    padding: 80,
-    // display: "flex",
-    // flexDirection: "column",
-    // gap: "2rem",
-    // borderRight: `${rem(1)} solid ${theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[3]}`,
-    // height: "100%",
-    // maxWidth: rem(400),
-
-    [theme.fn.smallerThan("xs")]: {
-      padding: 10,
-    },
-  },
-
-  box: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-  },
-}));
-
-interface FormValues {
-  title: string;
-  description: string;
-}
-
-let initialValues: FormValues = {
-  title: "",
-  description: "",
-};
+import { MdAddCircleOutline } from "react-icons/md";
+import { RewardCard } from "../components/RewardCard";
+import AddReward from "../components/AddReward";
+import { Reward } from "../interfaces";
 
 const AdminDashboard = () => {
-  const { classes } = useStyles();
-  const { currentUser, setCurrentUser } = useAuth();
+  const { currentUser, getRewards, saveClaimPoints } = useAuth();
+
+  const [claimPoints, setClaimPoints] = useState<number | "">(currentUser!.company.claimPoints || "");
+  const [claimPointsInterval, setClaimPointsInterval] = useState<string | null>(
+    currentUser!.company.claimPointsInterval?.toString() || null
+  );
+  const [claimPointsLoading, setClaimPointsLoading] = useState(false);
 
   const [opened, { open, close }] = useDisclosure(false);
-  const [opened2, { open: open2, close: close2 }] = useDisclosure(false);
 
-  const [claimPointsLoading, setClaimPointsLoading] = useState(false);
-  const [claimPoints, setClaimPoints] = useState<number | "">(currentUser?.company.claimPoints || "");
-  const [claimPointsInterval, setClaimPointsInterval] = useState<string | null>(
-    currentUser?.company.claimPointsInterval?.toString() || null
-  );
+  const [rewardToEdit, setRewardToEdit] = useState<Reward | null>(null);
 
-  const [reward, setReward] = useState<any>(null);
-
-  const [pointsPrice, setPointsPrice] = useState<number>(0);
   const [unapprovedRedeems, setUnapprovedRedeems] = useState<any>([]);
 
+  const handleSaveClaimPoints = async () => {
+    setClaimPointsLoading(true);
+    await saveClaimPoints(Number(claimPoints), Number(claimPointsInterval));
+    setClaimPointsLoading(false);
+  };
+
   const handleCloseModal = () => {
-    setValues({ title: "", description: "" });
-    setPointsPrice(0);
-    setReward(null);
-    resetForm();
+    setRewardToEdit(null);
     close();
   };
 
-  useEffect(() => {
-    getDocs(
-      query(
-        collection(db, "redeems"),
-        where("completed", "==", false),
-        where("companyId", "==", currentUser!.companyId),
-        orderBy("createdAt", "desc")
-      )
-    )
-      .then(async data => {
-        const redeems = await Promise.all(
-          data.docs.map(async doc => {
-            const docData = doc.data();
-            const user = await getDoc(docData.user);
-            const userData = user.data() as any;
-            return {
-              id: doc.id,
-              userName: userData.displayName,
-              userEmail: userData.email,
-              title: docData.title,
-              description: docData.description,
-              pointsPrice: docData.pointsPrice,
-              createdAt: new Date(docData.createdAt.seconds * 1000).toDateString(),
-            };
-          })
-        );
+  // useEffect(() => {
+  //   getRewards();
 
-        setUnapprovedRedeems(redeems);
-      })
-      .catch(err => console.log(err));
-  }, []);
+  //   getDocs(
+  //     query(
+  //       collection(db, "redeems"),
+  //       where("completed", "==", false),
+  //       where("companyId", "==", currentUser!.companyId),
+  //       orderBy("createdAt", "desc")
+  //     )
+  //   )
+  //     .then(async data => {
+  //       const redeems = await Promise.all(
+  //         data.docs.map(async doc => {
+  //           const docData = doc.data();
+  //           const user = await getDoc(docData.user);
+  //           const userData = user.data() as any;
+  //           return {
+  //             id: doc.id,
+  //             userName: userData.displayName,
+  //             userEmail: userData.email,
+  //             title: docData.title,
+  //             description: docData.description,
+  //             pointsPrice: docData.pointsPrice,
+  //             createdAt: new Date(docData.createdAt.seconds * 1000).toDateString(),
+  //           };
+  //         })
+  //       );
 
-  const handleDeleteReward = async (obj: any) => {
-    try {
-      const newRewards = currentUser?.company.rewards.filter((x: any) => JSON.stringify(x) !== JSON.stringify(obj));
-
-      await updateDoc(doc(db, "companies", currentUser!.companyId), {
-        rewards: newRewards,
-      });
-
-      setCurrentUser((curr: CurrentUser | null) => ({
-        ...curr,
-        company: {
-          ...curr!.company,
-          rewards: newRewards,
-        },
-      }));
-
-      toast.success("Reward deleted successfully!");
-    } catch (err) {}
-  };
-
-  const onSubmit = async (values: FormValues, { resetForm }: FormikHelpers<FormValues>) => {
-    try {
-      if (reward) {
-        const rewards = currentUser!.company.rewards.map(x => {
-          if (JSON.stringify(x) === JSON.stringify(reward)) {
-            console.log("da");
-            return { ...values, pointsPrice };
-          } else {
-            return x;
-          }
-        });
-
-        await updateDoc(doc(db, "companies", currentUser!.companyId), {
-          rewards: rewards,
-        });
-
-        setCurrentUser((curr: CurrentUser | null) => ({
-          ...curr,
-          company: {
-            ...curr!.company,
-            rewards: rewards,
-          },
-        }));
-
-        toast.success("Reward updated successfully!");
-      } else {
-        const newReward = { title: values.title, pointsPrice: pointsPrice, description: values.description };
-
-        await updateDoc(doc(db, "companies", currentUser!.companyId), {
-          rewards: arrayUnion(newReward),
-        });
-
-        setCurrentUser((curr: CurrentUser | null) => ({
-          ...curr,
-          company: {
-            ...curr!.company,
-            rewards: [...curr!.company.rewards, newReward],
-          },
-        }));
-
-        // setRewards((curr: any) => [
-        //   { title: values.title, pointsPrice: pointsPrice, description: values.description },
-        //   ...curr,
-        // ]);
-        toast.success("Reward added successfully!");
-      }
-
-      close();
-      resetForm();
-      setPointsPrice(0);
-      setReward(null);
-    } catch (err) {
-      toast.error("Something went wrong!");
-      console.log(err);
-    }
-  };
-
-  const { values, errors, touched, isSubmitting, handleBlur, handleChange, handleSubmit, setValues, resetForm } =
-    useFormik({
-      initialValues,
-      validationSchema: createRewardSchema,
-      onSubmit,
-    });
-
-  const handleEditReward = async (obj: any) => {
-    setReward(obj);
-    setValues(obj);
-    setPointsPrice(obj.pointsPrice);
-    open();
-  };
+  //       setUnapprovedRedeems(redeems);
+  //     })
+  //     .catch(err => console.log(err));
+  // }, []);
 
   const handleApprove = async (id: string) => {
     try {
@@ -244,43 +115,19 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleSaveClaimPoints = async () => {
-    try {
-      setClaimPointsLoading(true);
-
-      await setDoc(
-        doc(db, "companies", currentUser!.companyId),
-        { claimPoints, claimPointsInterval: Number(claimPointsInterval) },
-        { merge: true }
-      );
-
-      setCurrentUser((curr: CurrentUser | null) => ({
-        ...curr,
-        company: { ...curr?.company, claimPoints, claimPointsInterval },
-      }));
-
-      toast.success("Claim points updated successfully!");
-    } catch (e) {
-      console.log(e);
-    } finally {
-      setClaimPointsLoading(false);
-    }
-  };
-
   return (
-    // <div style={{ width: "100%", overflow: "hidden" }}>
     <>
-      <Grid>
+      <Grid gutter={5} gutterXs="md" gutterMd="xl" gutterXl={50}>
         <Grid.Col sm={12} md={6}>
-          <Paper p={50} style={{ minHeight: "100%" }}>
-            <Stack>
+          <Paper radius="lg" p={30} mih={"100%"} h={"100%"}>
+            <Stack h={"100%"} justify="center">
               <NumberInput
                 value={claimPoints}
                 onChange={setClaimPoints}
                 label="Claim points"
-                defaultValue={0}
+                defaultValue={""}
                 step={10}
-                min={0}
+                min={1}
                 max={10000}
               />
 
@@ -290,16 +137,26 @@ const AdminDashboard = () => {
                 label="Every"
                 placeholder="Pick one"
                 data={[
-                  { value: String(1000 * 60 * 60 * 1), label: "1 hour" },
-                  { value: String(1000 * 60 * 60 * 2), label: "2 hours" },
-                  { value: String(1000 * 60 * 60 * 4), label: "4 hours" },
-                  { value: String(1000 * 60 * 60 * 8), label: "8 hours" },
-                  { value: String(1000 * 60 * 60 * 12), label: "12 hours" },
-                  { value: String(1000 * 60 * 60 * 24), label: "24 hours" },
+                  { value: String(3600 * 1), label: "1 hour" },
+                  { value: String(3600 * 2), label: "2 hours" },
+                  { value: String(3600 * 4), label: "4 hours" },
+                  { value: String(3600 * 8), label: "8 hours" },
+                  { value: String(3600 * 12), label: "12 hours" },
+                  { value: String(3600 * 24), label: "24 hours" },
                 ]}
               />
 
-              <Button loading={claimPointsLoading} style={{ marginTop: "1rem" }} onClick={handleSaveClaimPoints}>
+              <Button
+                loading={claimPointsLoading}
+                style={{ marginTop: "1rem" }}
+                disabled={
+                  Number(claimPoints) <= 0 ||
+                  Number(claimPointsInterval) <= 0 ||
+                  (claimPoints === currentUser!.company.claimPoints &&
+                    claimPointsInterval === currentUser!.company.claimPointsInterval?.toString())
+                }
+                onClick={handleSaveClaimPoints}
+              >
                 Save
               </Button>
             </Stack>
@@ -307,97 +164,113 @@ const AdminDashboard = () => {
         </Grid.Col>
 
         <Grid.Col sm={12} md={6}>
-          <Paper p={50}>
-            <DropZone />
+          <Paper radius="lg" p={30}>
+            <UploadEmailsDropZone />
           </Paper>
         </Grid.Col>
       </Grid>
 
-      <Modal
-        opened={opened}
-        onClose={handleCloseModal}
-        title={reward ? "Edit reward" : "Add reward"}
-        closeOnClickOutside={false}
-      >
-        <form onSubmit={handleSubmit} autoComplete="off">
-          <Stack spacing={20}>
-            <TextInput
-              withAsterisk
-              id="title"
-              error={touched.title && errors.title}
-              value={values.title}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              label="Task title"
-              placeholder="Something short and concise"
-            />
-
-            <Textarea
-              id="description"
-              error={touched.description && errors.description}
-              value={values.description}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              label="Description"
-              placeholder="Put here a good description"
-              autosize
-              minRows={6}
-              maxRows={10}
-            />
-
-            <NumberInput
-              withAsterisk
-              id="pointsPrice"
-              value={pointsPrice}
-              defaultValue={0}
-              onChange={value => setPointsPrice(value || 0)}
-              label="Points"
-              step={5}
-              min={0}
-            />
-          </Stack>
-
-          <Button type="submit" mt={40} w="100%" loading={isSubmitting}>
-            {reward ? "Edit reward" : "Add reward"}
-          </Button>
-        </form>
+      <Modal opened={opened} onClose={handleCloseModal} closeOnClickOutside={false} withCloseButton={false}>
+        <AddReward reward={rewardToEdit || undefined} handleClose={handleCloseModal} />
       </Modal>
 
       <Stack>
-        <Flex align="center" gap={20}>
-          <Title>Rewards</Title>
-          <Button onClick={open}>Add reward</Button>
-        </Flex>
+        <Title>Rewards</Title>
 
-        <Grid>
+        <SimpleGrid
+          cols={4}
+          spacing={"xl"}
+          verticalSpacing="xl"
+          breakpoints={[
+            { maxWidth: "90rem", cols: 3, spacing: "md", verticalSpacing: "md" },
+            { maxWidth: "70rem", cols: 2, spacing: "sm", verticalSpacing: "sm" },
+            { maxWidth: "40rem", cols: 1, spacing: "sm", verticalSpacing: "md" },
+          ]}
+        >
+          <Card p={50} onClick={open}>
+            <Stack justify="center" align="center" h={"100%"}>
+              <MdAddCircleOutline size="4rem" />
+              <Text>Add reward</Text>
+            </Stack>
+          </Card>
+
           {currentUser?.company.rewards?.map((reward: any, index: number) => (
-            <Grid.Col sm={12} md={6} lg={4} mih={"100%"} key={index}>
-              <Card mih={"100%"}>
-                <Stack mih={"100%"}>
-                  <Flex justify={"space-between"} align={"center"} gap={10}>
-                    <Title order={3}>{reward.title}</Title>
-                    <Text fz={26} fw={700}>
-                      {reward.pointsPrice}
-                    </Text>
-                  </Flex>
-                  <Flex justify={"space-between"} gap={10}>
-                    <Text fz="xs">{reward.description}</Text>
-                    <Flex gap={10}>
-                      <ActionIcon radius="xl" onClick={() => handleEditReward(reward)}>
-                        <MdEditNote size={30} color="#1971c2" />
+            <RewardCard
+              {...reward}
+              key={index}
+              handleClickEdit={() => {
+                setRewardToEdit(reward);
+                open();
+              }}
+              handleClickDelete={() => console.log("todo handleClickDelete", reward)}
+            />
+          ))}
+        </SimpleGrid>
+
+        {/* <Grid grow>
+          <Grid.Col span="content">
+            <Card p={50} onClick={open} miw={350} maw={450}>
+              <Stack justify="center" align="center">
+                <MdAddCircleOutline size="4rem" />
+                <Text>Add reward</Text>
+              </Stack>
+            </Card>
+          </Grid.Col>
+
+          {[
+            ...currentUser?.company.rewards!,
+            ...currentUser?.company.rewards!,
+            ...currentUser?.company.rewards!,
+            ...currentUser?.company.rewards!,
+            ...currentUser?.company.rewards!,
+            ...currentUser?.company.rewards!,
+            ...currentUser?.company.rewards!,
+            ...currentUser?.company.rewards!,
+          ].map((reward: any, index: number) => (
+            <Grid.Col span="content" key={index}>
+              <Card shadow="sm" padding="xl" miw={350} maw={450}>
+                <Card.Section>
+                  <Image
+                    src="https://images.unsplash.com/photo-1579227114347-15d08fc37cae?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2550&q=80"
+                    height={160}
+                    alt="No way!"
+                  />
+                </Card.Section>
+
+                <Flex justify={"space-between"} align={"center"}>
+                  <Text weight={500} size="lg" mt="md">
+                    {reward.title}
+                  </Text>
+
+                  <Menu shadow="xl" width={200} offset={10} withArrow position="bottom">
+                    <Menu.Target>
+                      <ActionIcon radius="lg" size="lg">
+                        <MdMoreVert size="1.5rem" />
                       </ActionIcon>
-                      <ActionIcon radius="xl" onClick={() => handleDeleteReward(reward)}>
-                        <MdDeleteForever size={30} color="rgb(255, 85, 113)" />
-                      </ActionIcon>
-                    </Flex>
-                  </Flex>
-                </Stack>
+                    </Menu.Target>
+
+                    <Menu.Dropdown>
+                      <Menu.Item color="blue" icon={<MdEditNote size={14} />} onClick={() => handleEditReward(reward)}>
+                        Edit reward
+                      </Menu.Item>
+                      <Menu.Item
+                        color="red"
+                        icon={<MdOutlineDelete size={14} />}
+                        onClick={() => handleDeleteReward(reward)}
+                      >
+                        Delete reward
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </Flex>
+
+                <Text mt="xs" color="dimmed" size="sm">
+                  {reward.description}
+                </Text>
               </Card>
             </Grid.Col>
           ))}
-        </Grid>
-
-        {currentUser!.company.rewards?.length === 0 && <Text py={20}>No rewards added</Text>}
+        </Grid> */}
       </Stack>
 
       <Stack>
@@ -429,7 +302,6 @@ const AdminDashboard = () => {
         {unapprovedRedeems.length === 0 && <Text>No rewards are waiting for your approval</Text>}
       </Stack>
     </>
-    // </div>
   );
 };
 

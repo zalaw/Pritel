@@ -1,4 +1,3 @@
-import { DropZone } from "../components/DropZone";
 import {
   Card,
   NumberInput,
@@ -95,6 +94,8 @@ const Tasks = () => {
   const [tasksLoading, setTasksLoading] = useState(false);
 
   useEffect(() => {
+    console.log("hello");
+
     setTasksLoading(true);
 
     const unsubscribe = onSnapshot(
@@ -107,6 +108,7 @@ const Tasks = () => {
         orderBy("createdAt", "desc")
       ),
       async snapshot => {
+        console.log("aici");
         const taskDataPromises = snapshot.docs.map(async doc => {
           const taskData = doc.data();
           const userDoc = await getDoc(taskData.user);

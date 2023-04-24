@@ -1,12 +1,10 @@
 import { useRef, useState } from "react";
 import { Text, Group, Button, createStyles, rem, Box } from "@mantine/core";
 import { Dropzone, FileWithPath, MIME_TYPES } from "@mantine/dropzone";
-import { MdOutlineUploadFile, MdFileUpload, MdClose, MdOutlineAccountCircle } from "react-icons/md";
-import { simulateLoading } from "../dev/helpers";
+import { MdOutlineUploadFile, MdFileUpload, MdClose } from "react-icons/md";
 import { useAuth, CurrentUser } from "../contexts/AuthContext";
 import { generatePassword } from "../utils";
 import { db, secondaryAuth, secondaryDB } from "../firebase";
-import { Auth } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 
 const useStyles = createStyles(theme => ({
@@ -17,7 +15,7 @@ const useStyles = createStyles(theme => ({
 
   dropzone: {
     borderWidth: rem(1),
-    paddingBottom: rem(50),
+    paddingBottom: rem(30),
   },
 
   icon: {
@@ -26,8 +24,8 @@ const useStyles = createStyles(theme => ({
 
   control: {
     position: "absolute",
-    width: rem(250),
-    left: `calc(50% - ${rem(125)})`,
+    width: rem(200),
+    left: `calc(50% - ${rem(100)})`,
     bottom: rem(-20),
   },
 
@@ -48,7 +46,7 @@ interface EmployeeAccount {
   password: string;
 }
 
-export function DropZone() {
+export function UploadEmailsDropZone() {
   const [loading, setLoading] = useState(false);
   const { classes, theme } = useStyles();
   const openRef = useRef<() => void>(null);
@@ -134,32 +132,32 @@ export function DropZone() {
           <div style={{ pointerEvents: "none" }}>
             <Group position="center">
               <Dropzone.Accept>
-                <MdFileUpload size={rem(50)} color={theme.colors[theme.primaryColor][6]} />
+                <MdFileUpload size={rem(40)} color={theme.colors[theme.primaryColor][6]} />
               </Dropzone.Accept>
               <Dropzone.Reject>
-                <MdClose size={rem(50)} color={theme.colors.red[6]} />
+                <MdClose size={rem(40)} color={theme.colors.red[6]} />
               </Dropzone.Reject>
               <Dropzone.Idle>
                 <MdOutlineUploadFile
-                  size={rem(50)}
+                  size={rem(40)}
                   color={theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.black}
                 />
               </Dropzone.Idle>
             </Group>
 
-            <Text ta="center" fw={700} fz="lg" mt="xl">
+            <Text ta="center" fw={700} fz="md" mt="sm">
               <Dropzone.Accept>Drop file here</Dropzone.Accept>
               <Dropzone.Reject>Csv file less than 30mb</Dropzone.Reject>
               <Dropzone.Idle>Upload your employees email list</Dropzone.Idle>
             </Text>
-            <Text ta="center" fz="sm" mt="xs" c="dimmed">
+            <Text ta="center" fz="xs" mt="xs" c="dimmed">
               Drag&apos;n&apos;drop files here to upload. We can accept only <i>.csv</i> files that are less than 30mb
               in size.
             </Text>
           </div>
         </Dropzone>
         {!loading && (
-          <Button className={classes.control} size="md" radius="xl" onClick={() => openRef.current?.()}>
+          <Button className={classes.control} radius="xl" onClick={() => openRef.current?.()}>
             Select files
           </Button>
         )}
