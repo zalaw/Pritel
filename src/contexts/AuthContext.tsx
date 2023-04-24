@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
-import { auth, db } from "../firebase";
+import { auth, db, storage } from "../firebase";
 import {
   Auth,
   UserCredential,
@@ -11,7 +11,24 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { DocumentReference, DocumentSnapshot, doc, getDoc } from "firebase/firestore";
+import {
+  DocumentReference,
+  DocumentSnapshot,
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import { Reward } from "../interfaces";
+import { toast } from "react-toastify";
+import { simulateLoading } from "../dev/helpers";
+import { getDownloadURL, ref, uploadBytes, uploadBytesResumable } from "firebase/storage";
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -58,9 +75,10 @@ interface IValue {
   sendVerificationEmail: (authInstance?: Auth) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   logout: (authInstance?: Auth) => Promise<void>;
+  saveClaimPoints: (claimPoints: number, claimPointsInterval: number) => Promise<void>;
+  getRewards: () => Promise<void>;
+  addReward: (reward: Reward, imageFile: File | null) => Promise<void>;
 }
-
-//SetStateAction<CurrentUser | null>
 
 const AuthContext = createContext<IValue>({
   currentUser: null,
@@ -86,6 +104,15 @@ const AuthContext = createContext<IValue>({
   logout: () => {
     throw new Error("AuthContext not initialized properly");
   },
+  saveClaimPoints: () => {
+    throw new Error("AuthContext not initialized properly");
+  },
+  getRewards: () => {
+    throw new Error("AuthContext not initialized properly");
+  },
+  addReward: () => {
+    throw new Error("AuthContext not initialized properly");
+  },
 });
 
 export function useAuth() {
@@ -95,6 +122,8 @@ export function useAuth() {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [userLoading, setUserLoading] = useState(true);
+
+  const navigate = useNavigate();
 
   function enroll(email: string, password: string, authInstance: Auth = auth): Promise<UserCredential> {
     return createUserWithEmailAndPassword(authInstance, email, password);
@@ -120,6 +149,73 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return signOut(authInstance);
   }
 
+  async function saveClaimPoints(claimPoints: number, claimPointsInterval: number) {
+    try {
+      await simulateLoading(2000, 5000);
+
+      await setDoc(doc(db, "companies", currentUser!.companyId), { claimPoints, claimPointsInterval }, { merge: true });
+
+      setCurrentUser({
+        ...currentUser!,
+        company: { ...currentUser!.company, claimPoints, claimPointsInterval },
+      });
+
+      toast.success("Claim points updated successfully!");
+    } catch (err) {
+      console.log(err);
+      toast.error("Something went wrong!");
+    }
+  }
+
+  async function getRewards() {
+    const rewards: Reward[] = [];
+
+    const querySnapshot = await getDocs(
+      query(collection(db, "rewards"), where("companyId", "==", currentUser!.companyId), orderBy("createdAt", "desc"))
+    );
+
+    querySnapshot.forEach(doc => {
+      console.log(doc.id, " => ", doc.data());
+      // rewards.push({ ...doc.data() });
+    });
+  }
+
+  async function addReward(reward: Reward, imageFile: File | null) {
+    if (imageFile === null) return;
+
+    try {
+      const now = new Date();
+      const imageName = crypto.randomUUID();
+      const storageRef = ref(storage, `rewards-images/${imageName}`);
+
+      const uploadTask = uploadBytesResumable(storageRef, imageFile);
+
+      uploadTask.on(
+        "state_changed",
+        () => {},
+        err => console.log(err),
+        async () => {
+          const imageURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+          await addDoc(collection(db, "rewards"), {
+            ...reward,
+            imageName,
+            imageURL,
+            company: doc(db, `companies/${currentUser!.companyId}`),
+            companyId: currentUser!.companyId,
+            createdAt: now,
+            updatedAt: now,
+          });
+
+          toast.success("Reward added successfully!");
+        }
+      );
+    } catch (err) {
+      console.log(err);
+      toast.error("Something went wrong!");
+    }
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async user => {
       setUserLoading(true);
@@ -140,15 +236,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
             ...firestoreCompanyData,
           },
         });
+
+        setUserLoading(false);
       } else {
         setCurrentUser(null);
+        setUserLoading(false);
       }
-
-      setUserLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      setUserLoading(false);
+    };
   }, []);
+
+  useEffect(() => {
+    if (currentUser && ["/signin", "/enroll"].includes(window.location.pathname)) navigate("/");
+  }, [currentUser, navigate]);
 
   const value: IValue = {
     currentUser,
@@ -160,6 +264,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     sendVerificationEmail,
     forgotPassword,
     logout,
+    saveClaimPoints,
+    getRewards,
+    addReward,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

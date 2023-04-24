@@ -68,4 +68,5 @@ export const createRewardSchema = yup.object().shape({
     .string()
     .min(10, "Description should be at 10-500 characters")
     .max(500, "Description should be at 10-500 characters"),
+  points: yup.number().min(0),
 });

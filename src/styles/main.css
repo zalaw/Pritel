@@ -32,6 +32,10 @@ a {
   flex-direction: column;
 }
 
+.mantine-UnstyledButton-root.active {
+  background-color: #25262b;
+}
+
 #custom-disabled:disabled {
   background-color: rgb(85, 85, 85) !important;
   color: white !important;

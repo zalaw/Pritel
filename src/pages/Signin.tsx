@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { FormikHelpers, useFormik } from "formik";
 import { signInSchema } from "../schemas";
 import { useAuth } from "../contexts/AuthContext";
@@ -6,7 +7,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Paper, createStyles, TextInput, PasswordInput, Button, Title, Text, rem } from "@mantine/core";
 import { FirebaseError } from "firebase/app";
 import { Link } from "react-router-dom";
-import { MdArrowBack } from "react-icons/md";
 
 const useStyles = createStyles(theme => ({
   wrapper: {
@@ -57,10 +57,18 @@ const initialValues: FormValues = {
 
 export default function Signin() {
   const { classes } = useStyles();
-  const { signin, logout } = useAuth();
+  const { userLoading, currentUser, signin, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/dashboard";
+
+  console.log("userLoading in Signin", userLoading);
+  console.log("currentUser in Signin", currentUser);
+
+  useEffect(() => {
+    console.log("useEffect");
+    if (currentUser) navigate("/");
+  }, [currentUser, navigate]);
 
   const onSubmit = async (values: FormValues, { resetForm }: FormikHelpers<FormValues>) => {
     try {
@@ -90,6 +98,8 @@ export default function Signin() {
     validationSchema: signInSchema,
     onSubmit,
   });
+
+  if (userLoading) return null;
 
   return (
     <div className={classes.wrapper}>

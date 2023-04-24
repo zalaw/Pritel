@@ -133,8 +133,8 @@ const Dashboard = () => {
           <Card padding={30} h="100%">
             <Stack>
               <Flex justify="space-between" align="center" gap={20}>
-                <Text size={24}>Points</Text>
-                <Text size={32} fw={700}>
+                <Text size={22}>Points</Text>
+                <Text size={26} fw={700}>
                   {currentUser?.user.points}
                 </Text>
               </Flex>
@@ -175,17 +175,15 @@ const Dashboard = () => {
           <Card padding={30} h="100%">
             <Stack>
               <Flex justify="space-between" align="center" gap={20}>
-                <Text size={24}>Tasks created</Text>
-                <Text size={32} fw={700}>
+                <Text size={22}>Tasks created</Text>
+                <Text size={26} fw={700}>
                   {tasksCreated.length}
                 </Text>
               </Flex>
 
-              <Link to="/tasks">
-                <Button id="custom-disabled" disabled={currentUser!.user.points === 0} w="100%" onClick={() => {}}>
-                  {currentUser!.user.points === 0 ? "You have 0 points" : "Create task"}
-                </Button>
-              </Link>
+              <Button id="custom-disabled" disabled={currentUser!.user.points === 0} w="100%">
+                <Link to="/tasks">{currentUser!.user.points === 0 ? "You have 0 points" : "Create task"}</Link>
+              </Button>
             </Stack>
           </Card>
         </Grid.Col>
@@ -194,17 +192,17 @@ const Dashboard = () => {
           <Card padding={30}>
             <Stack>
               <Flex justify="space-between" align="center" gap={20}>
-                <Text size={24}>Tasks completed</Text>
-                <Text size={32} fw={700}>
+                <Text size={22}>Tasks completed</Text>
+                <Text size={26} fw={700}>
                   {tasksCompleted.length}
                 </Text>
               </Flex>
 
-              <Link to="/tasks">
-                <Button w="100%" onClick={() => {}}>
+              <Button w="100%" onClick={() => {}}>
+                <Link to="/tasks" style={{ width: "100%" }}>
                   Let's complete some tasks
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </Stack>
           </Card>
         </Grid.Col>

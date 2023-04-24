@@ -1,4 +1,3 @@
-import { DropZone } from "../components/DropZone";
 import {
   Card,
   NumberInput,

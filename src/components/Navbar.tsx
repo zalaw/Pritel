@@ -25,8 +25,6 @@ export function Navbar() {
   const { currentUser, userLoading, logout } = useAuth();
   const { classes } = useStyles();
 
-  console.log(currentUser);
-
   return (
     <Box className={classes.navbar}>
       <Header height={60} px={20}>
